@@ -1,8 +1,6 @@
-library(tm)
-library(RWeka)
-library(slam)
 
-parseTextIntoFrequencyTable <- function(text, freq = 0, gramSize = 3L){
+
+parseTextIntoFrequencyTable <- function(text, gramSize = 3L){
         
         
         tic()

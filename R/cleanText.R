@@ -36,7 +36,7 @@ cleanText <- function(text){
         
         text  <- gsub("<s> </s>", "", text, perl=T)
 
-        text
+        text 
 }
 
 

@@ -19,10 +19,10 @@ shinyUI(navbarPage(
                  sidebarLayout(
                          sidebarPanel(
                                  textInput("sentence",
-                                           value="", label = "Enter a sentence:"),
+                                           value="", label = "Type a sentence:"),
                                  actionButton("fetchButton", "Predict Next Word"),
                                  
-                                 h3("Further settings"),
+                                 h3(" "),
                                  
                                  
                                  sliderInput("max",
@@ -33,7 +33,7 @@ shinyUI(navbarPage(
                          # Show a plot of the generated distribution
                          mainPanel(
                                  tabsetPanel(
-                                         tabPanel("Words list", h3("All words sorted by relevance"), dataTableOutput("commonTable"))
+                                         tabPanel("Words list", h3(" "), p("Please be patient, the trained model (157MB) need to be loaded into the Shiny app from Amazon servers. It may take a few mins, isn't this the perfect time for a tea or a cup of coffee! :)"), dataTableOutput("commonTable"))
 #                                          tabPanel("Words cloud", plotOutput("plot")),
 #                                          tabPanel("Statistics", br(), plotOutput("plot"))
 #                                          
@@ -41,5 +41,5 @@ shinyUI(navbarPage(
                          )
                  )
         ),
-        tabPanel('Usage', includeMarkdown("README.md"))
+        tabPanel('Readme', includeMarkdown("README.md"))
 ))

@@ -19,6 +19,8 @@ sentences <- capstone.removePunctuation(sentences)
 sentences <- capstone.addSentenceDelimiters(sentences)
 sentences <- tolower(sentences)
 
+save(sentences, file="data/samples/sentences-blog-news-twitter.01Pc.RData")
+
 #extracting frequencies
 unigramData <- capstone.getUnigramFrequencies(sentences)
 bigramData <- capstone.getBigramFrequencies(sentences)
@@ -56,5 +58,5 @@ setorder(unigramData, -pKN)
 setorder(bigramData, -pKN)
 setorder(trigramData, -pKN)
 
-
+capstone.saveDataTables()
 

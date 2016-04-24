@@ -1,13 +1,30 @@
+library(data.table)
+library(SnowballC)
+library(quanteda)
+#library(tictoc)
 
-capstone.getText <- function(){
+capstone.getText <- function(seed = 123){
         
 #         text <- "<s> I'm a sentence and I'd better be formatted properly </s> <s> I'm a second sentence </s> <s> So I'd better be correctly split since I'm a sentence and I've always wanted to be </s>"
 #         text <- "<s>I'm a sentence and I'd better be formatted properly</s><s>I'm a second sentence</s>"
         # text <- "Prof. O'Neil, I'm a sentence and I'd better be formatted properly. I'm a second sentence. So I'd better be correctly split since I'm a sentence and I've always wanted to be."
         
+        message("reading blog")
         blogText <- readLines("data/raw/final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = T)
+        message("reading News")
+        newsText <- readLines("data/raw/final/en_US/en_US.news.txt", encoding = "UTF-8", skipNul = T)
+        message("reading Twitter")
+        twitterText <- readLines("data/raw/final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = T)
         
-        text <- sample(blogText, round(0.1 * length(blogText)) )
+        set.seed(seed)
+
+        message("Sampling 1% of the three copies")
+        text <- c(
+                sample(blogText, round(0.1 * length(blogText))),
+                sample(newsText, round(0.1 * length(newsText))),
+                sample(twitterText, round(0.1 * length(twitterText)))
+        )
+                  
         
         text
 }
@@ -24,9 +41,9 @@ capstone.cleanText <- function(text){
         
         for(i in 1:rLength){
                 
-                message(paste("Replacing", r[i]$Code, "with", r[i]$Repl))
+                message(paste("Replacing", r[i]$Symb, "with", r[i]$Repl))
                 
-                text <- gsub(r[i]$Code, r[i]$Repl, text)
+                text <- gsub(r[i]$Symb, r[i]$Repl, text, perl=T)
         }
         
         message(paste("Replacing multiple quotes with single"))
@@ -34,9 +51,10 @@ capstone.cleanText <- function(text){
         
         # Replace words like doin' with doing
         message(paste("Replacing \\w{2}in' with doing"))
-        text  <- gsub("(\\w{2})in'?", "\\1ing", text, perl=T)
+        text  <- gsub("(\\w{2})in'", "\\1ing", text, perl=T)
+        text  <- gsub("(\\w{2})in\\s", "\\1ing ", text, perl=T)
         message(paste("Replacing isn t couldn t with isn't couldn't etc"))
-        text  <- gsub("(\\w{2})n\\st(\\W)", "\\1n't\\2", text, perl=T)
+        text  <- gsub("(\\w{2})n\\st(\\s|[.,;!?])", "\\1n't\\2", text, perl=T)
         
         message(paste("Removing single quotes when these are not used in context like I'd, we'd etc"))
         text <- gsub("(?<=\\W|^)'+|'+(?=\\W|$)", "", text, perl=T)
@@ -46,6 +64,11 @@ capstone.cleanText <- function(text){
         text
 }
 capstone.removeProfanity <- function(sentences){
+        
+        r <- readLines("data/swearWords.csv")
+        
+        sentences <- gsub(r[1], "<censored>", sentences, perl=T)
+        
         sentences
 }
 capstone.addSentenceDelimiters <- function(sentences){
@@ -74,7 +97,7 @@ capstone.getLastNWords <- function(sentence, n=1){
         s <- f[(l-n):l]
         paste(s, collapse = " ")
 }
-capstone.addMLEProb <- function(ngram){
+capstone.addMLE <- function(ngram){
         
         ngram[, c("pMLE") := list(freq /sum(freq)), by = .(wordsMin1)]
         
@@ -136,21 +159,20 @@ capstone.addPKN <- function(higherOrderNgram, lowerOrderNgram, delta){
         message("pKN calculated")
         
 }
-
 capstone.benchMarkPredictNextWord <- function(sentence, u, b, t){
         
         capstone.predictNextWord(sentence, u, b, t)[1:3]$wordsLast
 }
-
 capstone.predictNextWord <- function(sentence, u,b,t){
         suppressMessages(
                 
-           sentence <- 
+           sentence <- tolower(
                 capstone.removePunctuation(
                         capstone.removeProfanity(
                                 capstone.cleanText(sentence)
                         )
                 )
+           )
         )
         sentence <- paste("<s>", sentence)
         
@@ -161,7 +183,7 @@ capstone.predictNextWord <- function(sentence, u,b,t){
         
         if(nGramSize == 3){
                 
-                hist <- getLastWord(sentence, n = (nGramSize - 1))
+                hist <- capstone.getLastNWords(sentence, n = (nGramSize - 1))
                 
                 r <- t[wordsMin1 == hist]
                 
@@ -176,7 +198,7 @@ capstone.predictNextWord <- function(sentence, u,b,t){
         
         if(nGramSize == 2){
                 
-                hist <- getLastWord(sentence, n = (nGramSize - 1)) 
+                hist <- capstone.getLastNWords(sentence, n = (nGramSize - 1)) 
                 
                 r <- b[wordsMin1 == hist]
                 
@@ -214,7 +236,10 @@ capstone.getUnigramFrequencies <- function(sentences){
         unigramCounts <- colSums(unigramDfm)
         unigramCounts <- unigramCounts[order(-unigramCounts)]
         
-        unigramData <- data.table(words = names(unigramCounts), freq = unigramCounts, pMLE = 0, pKN = 0)
+        unigramData <- data.table(
+                words = names(unigramCounts), 
+                wordsLast = names(unigramCounts),
+                freq = unigramCounts, pMLE = 0, pKN = 0)
         
         setkey(unigramData, words)
         
@@ -270,6 +295,12 @@ capstone.saveDataTables <- function(){
         save(trigramData, file ="data/quanteda.trigramData.RData")
 }
 
+capstone.loadDataTablesRemote <- function(){
+        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.unigramData.RData"))
+        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.bigramData.RData"))
+        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.trigramData.RData"))
+}
+
 capstone.loadDataTables <- function(){
         load(file="data/quanteda.unigramData.RData")
         load(file="data/quanteda.bigramData.RData")
@@ -278,5 +309,42 @@ capstone.loadDataTables <- function(){
         setorder(unigramData, -pKN)
         setorder(bigramData, -pKN)
         setorder(trigramData, -pKN)
+        
+        unigramData <<- unigramData
+        bigramData <<- bigramData
+        trigramData <<- trigramData
+}
+
+capstone.publishShiny <- function(all=F){
+        
+        if(!dir.exists("_publish")){
+                message("Creating _publish dir")
+                dir.create("_publish")
+                message("Creating data dir")
+                dir.create("_publish/data")
+                message("Creating R dir")
+                dir.create("_Publish/R")
+        }
+        
+        copyF <- function(files, path){
+                for(i in 1:length(files)){
+                        message(paste("Creating", files[i]))
+                        file.copy(files[i], paste0(path, files[i]), overwrite = T)
+                }
+        }
+        
+        rootFiles <- c("server.R", "ui.R", "DESCRIPTION", "README.md", "LICENCE", "Capstone Project.Rproj")
+        copyF(rootFiles, "_publish/")
+        
+        copyF(c("R/capstone.R"), "_publish/")
+        
+        if(all){
+                dataFiles <- list.files("data", pattern = "*.(RData|txt|csv)",full.names = T)
+                copyF(dataFiles, "_publish/")
+        }
+        
+        
+        
+        
         
 }

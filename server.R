@@ -10,7 +10,7 @@ library(shiny)
 require(RCurl)
 source("R/capstone.R")
 
-capstone.loadDataTablesRemote()
+capstone.loadDataTables()
 
 shinyServer(function(input, output, session) {
 
