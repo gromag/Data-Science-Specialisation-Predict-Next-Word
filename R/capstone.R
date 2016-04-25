@@ -5,8 +5,8 @@ library(quanteda)
 
 capstone.getText <- function(seed = 123){
         
-#         text <- "<s> I'm a sentence and I'd better be formatted properly </s> <s> I'm a second sentence </s> <s> So I'd better be correctly split since I'm a sentence and I've always wanted to be </s>"
-#         text <- "<s>I'm a sentence and I'd better be formatted properly</s><s>I'm a second sentence</s>"
+        #         text <- "<s> I'm a sentence and I'd better be formatted properly </s> <s> I'm a second sentence </s> <s> So I'd better be correctly split since I'm a sentence and I've always wanted to be </s>"
+        #         text <- "<s>I'm a sentence and I'd better be formatted properly</s><s>I'm a second sentence</s>"
         # text <- "Prof. O'Neil, I'm a sentence and I'd better be formatted properly. I'm a second sentence. So I'd better be correctly split since I'm a sentence and I've always wanted to be."
         
         message("reading blog")
@@ -17,19 +17,19 @@ capstone.getText <- function(seed = 123){
         twitterText <- readLines("data/raw/final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = T)
         
         set.seed(seed)
-
+        
         message("Sampling 1% of the three copies")
         text <- c(
-                sample(blogText, round(0.1 * length(blogText))),
+                sample(blogText, round(0.05 * length(blogText))),
                 sample(newsText, round(0.1 * length(newsText))),
                 sample(twitterText, round(0.1 * length(twitterText)))
         )
-                  
+        
         
         text
 }
 capstone.readCharConversionTable <- function(){
-        r  <- read.table("data/replaceTable.txt", sep="\t", header =T, stringsAsFactors = F, quote="")
+        r  <- read.table("data/replaceTable.txt", sep="\t", header =T, stringsAsFactors = F, quote="", encoding = "UTF-8")
         r  <- as.data.table(r)
         r[, lapply(.SD, paste0, collapse="|"), by = Repl]
 }
@@ -60,12 +60,12 @@ capstone.cleanText <- function(text){
         text <- gsub("(?<=\\W|^)'+|'+(?=\\W|$)", "", text, perl=T)
         message(paste("Removing dashes that are not word separators"))
         text <- gsub("(?<=\\W|^)-+|-+(?=\\W|$)", "", text, perl=T)
-
+        
         text
 }
 capstone.removeProfanity <- function(sentences){
         
-        r <- readLines("data/swearWords.csv")
+        r <- readLines("data/swearWords.csv", encoding = "UTF-8")
         
         sentences <- gsub(r[1], "<censored>", sentences, perl=T)
         
@@ -128,7 +128,7 @@ capstone.addUnigramPK <- function(unigramData, bigramData){
         
         #setkey will reorder in same order as N1Count
         setkey(unigramData, words)
-        unigramData$pKN <- N1Cont / sum(N1Cont)
+        unigramData[, c("pKN") := N1Cont / sum(N1Cont),]
 }
 capstone.addPKN <- function(higherOrderNgram, lowerOrderNgram, delta){
         
@@ -166,13 +166,14 @@ capstone.benchMarkPredictNextWord <- function(sentence, u, b, t){
 capstone.predictNextWord <- function(sentence, u,b,t){
         suppressMessages(
                 
-           sentence <- tolower(
-                capstone.removePunctuation(
-                        capstone.removeProfanity(
-                                capstone.cleanText(sentence)
-                        )
+                sentence <- tolower(
+                        #capstone.removePunctuation(
+                        #       capstone.removeProfanity(
+                        #capstone.cleanText(sentence)
+                        sentence
+                        #      )
+                        #)
                 )
-           )
         )
         sentence <- paste("<s>", sentence)
         
@@ -188,7 +189,7 @@ capstone.predictNextWord <- function(sentence, u,b,t){
                 r <- t[wordsMin1 == hist]
                 
                 if(dim(r)[1] > 0){
-
+                        
                         return(r)
                 }
                 
@@ -219,15 +220,15 @@ capstone.predictNextWord <- function(sentence, u,b,t){
         
 }
 capstone.calculateProbability <- function(wi, hist, d, uni, bi, bifw){
-#         words <- paste(hist, w, " ")
-#         
-#         biFreq <- bi[which(bi$word == words),]$freq
-#         biContextSum <- sum(bi[grep(paste0("^", hist, "\\s"), bi$word),]$freq) 
-#         biContinuationCount <- length(which(bifw == hist))
-#         lamb <- (d / biContextSum) * biContinuationCount
-#         pContWi <- t.PKN1[which(names(t.PKN1) == w)] 
-#         
-#         (max(biFreq - d, 0) / biContextSum) + lamb * pContWi
+        #         words <- paste(hist, w, " ")
+        #         
+        #         biFreq <- bi[which(bi$word == words),]$freq
+        #         biContextSum <- sum(bi[grep(paste0("^", hist, "\\s"), bi$word),]$freq) 
+        #         biContinuationCount <- length(which(bifw == hist))
+        #         lamb <- (d / biContextSum) * biContinuationCount
+        #         pContWi <- t.PKN1[which(names(t.PKN1) == w)] 
+        #         
+        #         (max(biFreq - d, 0) / biContextSum) + lamb * pContWi
 }
 capstone.getUnigramFrequencies <- function(sentences){
         
@@ -290,16 +291,23 @@ capstone.getTrigramFrequencies <- function(sentences){
 }
 
 capstone.saveDataTables <- function(){
-        save(unigramData, file ="data/quanteda.unigramData.RData")
-        save(bigramData, file ="data/quanteda.bigramData.RData")
-        save(trigramData, file ="data/quanteda.trigramData.RData")
+        save(unigramData, file ="data/quanteda.unigramDataS.RData")
+        save(bigramData, file ="data/quanteda.bigramDataS.RData")
+        save(trigramData, file ="data/quanteda.trigramDataS.RData")
 }
 
 capstone.loadDataTablesRemote <- function(){
-        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.unigramData.RData"))
-        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.bigramData.RData"))
-        load(url("https://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.trigramData.RData"))
-}
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.unigramDataS.RData"))
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.bigramDataS.RData"))
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.trigramDataS.RData"))
+        
+        setorder(unigramData, -pKN)
+        setorder(bigramData, -pKN)
+        setorder(trigramData, -pKN)
+        
+        unigramData <<- unigramData
+        bigramData <<- bigramData
+        trigramData <<- trigramData}
 
 capstone.loadDataTables <- function(){
         load(file="data/quanteda.unigramData.RData")
@@ -344,7 +352,7 @@ capstone.publishShiny <- function(all=F){
         }
         
         
-        
+        copyF(c("data/nlp.db"), "_publish/")
         
         
 }

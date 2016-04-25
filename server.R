@@ -9,11 +9,18 @@
 library(shiny)
 require(RCurl)
 source("R/capstone.R")
+library(RSQLite)
 
-capstone.loadDataTables()
+
+#capstone.loadDataTablesRemote()
 
 shinyServer(function(input, output, session) {
-
+        
+        
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.unigramDataS.RData"))
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.bigramDataS.RData"))
+        load(url("http://s3.amazonaws.com/giusepperomagnuolo.datascience.capstone/quanteda.trigramDataS.RData"))
+        
         # fetch text from webpage
         sentence <- reactive(input$sentence)
         
@@ -27,23 +34,6 @@ shinyServer(function(input, output, session) {
                 r
         })
         
-
-        # Outputting for the word cloud
-        output$plot <- renderPlot({
-                if (input$fetchButton != 0) {
-                        t <- filteredTerms()
-                        
-                        if (length(t) > 1) {
-                                wordcloud_rep(
-                                        t$wordsLast, t, scale = c(4,0.5),
-                                        max.words = input$max,
-                                        colors = brewer.pal(8, "Spectral")
-                                )
-                        }
-                        
-                }
-                
-        })
         
         # Output for tabular data
         output$commonTable <- renderDataTable({

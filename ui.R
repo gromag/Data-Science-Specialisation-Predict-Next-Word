@@ -33,7 +33,7 @@ shinyUI(navbarPage(
                          # Show a plot of the generated distribution
                          mainPanel(
                                  tabsetPanel(
-                                         tabPanel("Words list", h3(" "), p("Please be patient, the trained model (157MB) need to be loaded into the Shiny app from Amazon servers. It may take a few mins, isn't this the perfect time for a tea or a cup of coffee! :)"), dataTableOutput("commonTable"))
+                                         tabPanel("Words list", h3(" "), p("Please be patient, the trained model (107MB) need to be loaded from Amazon servers. It may take a bit more than a few moments to load, once loaded the application should be quite responsive."), dataTableOutput("commonTable"))
 #                                          tabPanel("Words cloud", plotOutput("plot")),
 #                                          tabPanel("Statistics", br(), plotOutput("plot"))
 #                                          

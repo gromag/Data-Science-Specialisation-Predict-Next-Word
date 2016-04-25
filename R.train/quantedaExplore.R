@@ -21,6 +21,8 @@ sentences <- tolower(sentences)
 
 save(sentences, file="data/samples/sentences-blog-news-twitter.01Pc.RData")
 
+load(file="data/samples/sentences-blog-news-twitter.01Pc.RData")
+
 #extracting frequencies
 unigramData <- capstone.getUnigramFrequencies(sentences)
 bigramData <- capstone.getBigramFrequencies(sentences)
@@ -58,5 +60,28 @@ setorder(unigramData, -pKN)
 setorder(bigramData, -pKN)
 setorder(trigramData, -pKN)
 
+unigramData  <- head(unigramData, n=10000)
+
+bigramData <- bigramData[wordsLast %in% unigramData$words]
+bigramData <- bigramData[wordsMin1 %in% unigramData$words]
+
+#if words are not in the unigram and bigrame remote them
+#as this will mess up the KN probability calculation
+trigramData <- trigramData[(wordsLast %in% unigramData$words)]
+trigramData <- trigramData[(wordsMin1 %in% bigramData$words)]
+
+
+
+
 capstone.saveDataTables()
+
+library(RSQLite)
+drv <- dbDriver("SQLite")
+con <- dbConnect(drv, dbname = "data/nlp.db")
+dbRemoveTable(con, "unigram")
+dbWriteTable(con, "unigram", unigramData)
+data.table(dbGetQuery(con, "SELECT * FROM unigram order by pKN desc"))
+dbDisconnect(con)
+
+unigramData
 
